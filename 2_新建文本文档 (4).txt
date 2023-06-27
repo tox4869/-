@@ -1,0 +1,212 @@
+# !/user/bin/env Python3
+# -*- coding:utf-8 -*-
+ 
+"""
+file：window.py.py
+create time:2019/6/27 14:54
+author:Loong Xu
+desc: 窗口
+"""
+import tkinter as tk
+from tkinter import filedialog, dialog
+import os
+from tkinter import END 
+import time,datetime
+import sys
+
+ 
+    
+    
+
+def open_file(yz_list):
+    #调用打开文件对话框，打开指定文件，得到文件路径
+    file_path = filedialog.askopenfilename(title=u'选择文件', initialdir=(os.path.expanduser('H:/')))
+    if file_path is  None:
+        print("文件不存在")
+    
+    #利用文件路径打开文件 提取数据
+    fb=open(file_path, 'rb+')
+    #读取文件
+    yz=fb.read()
+    #关闭文件
+    fb.close()
+    global mingcheng_list
+    global bianhao_list
+    global xiguangdu_list
+    global nongdu_list
+    global date_list
+    global list_LEN
+    mingcheng_list=[]
+    bianhao_list=[]
+    xiguangdu_list=[]
+    nongdu_list=[]
+    date_list=[]
+    
+    for num in range(0,100):
+        #print(yz[0x95e+num*3375-25:0x95e+num*3375].hex()+yz[0x95e+num*3375:0x95e+num*3375+22].hex()+yz[0x95e+num*3375+22:0x95e+num*3375+22+9].hex()+yz[0x95e+num*3375+22+4*9:0x95e+num*3375+22+4*9+9].hex()+yz[0x95e+num*3375+146:0x95e+num*3375+146+10].hex())
+        print(yz[0x95e+num*3375-25:0x95e+num*3375]+yz[0x95e+num*3375:0x95e+num*3375+22]+yz[0x95e+num*3375+22:0x95e+num*3375+22+9]+yz[0x95e+num*3375+22+4*9:0x95e+num*3375+22+4*9+9]+yz[0x95e+num*3375+146:0x95e+num*3375+146+10])
+        #名称
+        mingcheng_list.append(str(yz[0x95e+num*3375-25:0x95e+num*3375],'GBK').strip())
+        if mingcheng_list[len(mingcheng_list)-1][0:1] in ['1','2','3','4','5','6','7','8','9','0','*']:
+            if mingcheng_list[len(mingcheng_list)-1][0:1] == "*":
+                #移除这个
+                mingcheng_list.pop()
+                continue;
+            else:
+                #样品编号
+                bianhao_list.append(str(yz[0x95e+num*3375:0x95e+num*3375+22],'GBK').strip())
+                #样品吸光度
+                xiguangdu_list.append(str(yz[0x95e+num*3375+22:0x95e+num*3375+22+9],'GBK').strip())
+                #样品浓度
+                nongdu_list.append(str(yz[0x95e+num*3375+22+4*9:0x95e+num*3375+22+4*9+9],'GBK').strip())
+                #时间
+                date_list.append(str(yz[0x95e+num*3375+146:0x95e+num*3375+146+10],'GBK').strip())
+                
+        else:
+            break;
+    
+    #设置list长度
+    list_LEN=len(mingcheng_list)-1
+    #清空所有窗口数值
+    for num in range(0,24):
+        entry_mingcheng_list[num].delete(0, END)
+        entry_bianhao_list[num].delete(0, END)
+        entry_xiguangdu_list[num].delete(0, END)
+        entry_nongdu_list[num].delete(0, END)
+    entry_date.delete(0,END)    
+    #设置各个数值
+    for num in range(len(mingcheng_list)-1):
+        entry_mingcheng_list[num].insert(0, mingcheng_list[num])
+        entry_bianhao_list[num].insert(0, bianhao_list[num])
+        entry_xiguangdu_list[num].insert(0, xiguangdu_list[num])
+        entry_nongdu_list[num].insert(0, nongdu_list[num])
+    entry_date.insert(0,date_list[0])
+    yz_list.append(yz)
+    
+
+def save_as_file(yz_list):
+
+    global list_LEN
+
+    file_path = filedialog.asksaveasfilename(filetypes = [('dbf', '.dbf')])
+    #print(yz_list[0])
+    
+    #清空所有list
+    mingcheng_list.clear()
+    bianhao_list.clear()
+    xiguangdu_list.clear()
+    nongdu_list.clear()
+    date_list.clear()
+    #读取entry
+    for num in range(list_LEN):
+        mingcheng_list.append(entry_mingcheng_list[num].get())
+        bianhao_list.append(entry_bianhao_list[num].get())
+        xiguangdu_list.append(entry_xiguangdu_list[num].get())
+        nongdu_list.append(entry_nongdu_list[num].get())
+    date_list.append(entry_date.get())
+    
+
+    #修改yz数据
+    bytearray_linshi=bytearray(yz_list[0])
+    list_num=0
+    for num in range(0,100):
+        if str(yz_list[0][0x95e+num*3375-25:0x95e+num*3375],'GBK').strip()[0] in ['1','2','3','4','5','6','7','8','9','0','*']:
+            if str(yz_list[0][0x95e+num*3375-25:0x95e+num*3375],'GBK').strip()[0] == "*":
+                #不处理
+                continue;
+            else:
+                #名称  -4 前面4个空格，后面为中文字符个数
+                bytearray_linshi[0x95e+num*3375-25:0x95e+num*3375]=bytearray(('    '+mingcheng_list[list_num].strip().ljust(25-4-(len(mingcheng_list[list_num].strip().encode('GBK'))-len(mingcheng_list[list_num].strip())),' ')).encode('GBK'))
+                #样品编号
+                bytearray_linshi[0x95e+num*3375:0x95e+num*3375+22]=bytearray(bianhao_list[list_num].strip().ljust(22-(len(bianhao_list[list_num].strip().encode('GBK'))-len(bianhao_list[list_num].strip())),' ').encode('GBK'))
+                #样品吸光度
+                if xiguangdu_list[list_num].strip()[0] == '-':
+                    bytearray_linshi[0x95e+num*3375+22:0x95e+num*3375+22+9]=bytearray(xiguangdu_list[list_num].strip().ljust(9-(len(xiguangdu_list[list_num].strip().encode('GBK'))-len(xiguangdu_list[list_num].strip())),' ').encode('GBK'))
+                else:
+                    bytearray_linshi[0x95e+num*3375+22:0x95e+num*3375+22+9]=bytearray((' '+ xiguangdu_list[list_num].strip()).ljust(9-(len(xiguangdu_list[list_num].strip().encode('GBK'))-len(xiguangdu_list[list_num].strip())),' ').encode('GBK'))
+                #样品浓度
+                if nongdu_list[list_num].strip()[0] == '-':
+                    bytearray_linshi[0x95e+num*3375+22+4*9:0x95e+num*3375+22+4*9+9]=bytearray(nongdu_list[list_num].strip().ljust(9-(len(nongdu_list[list_num].strip().encode('GBK'))-len(nongdu_list[list_num].strip())),' ').encode('GBK'))
+                else:
+                    bytearray_linshi[0x95e+num*3375+22+4*9:0x95e+num*3375+22+4*9+9]=bytearray((' '+ nongdu_list[list_num].strip()).ljust(9-(len(nongdu_list[list_num].strip().encode('GBK'))-len(nongdu_list[list_num].strip())),' ').encode('GBK'))
+                list_num=list_num+1
+                #时间
+                bytearray_linshi[0x95e+num*3375+146:0x95e+num*3375+146+10]=bytearray(date_list[0].strip().encode('GBK'))
+                
+        else:
+            break;
+
+    
+    
+    #利用文件路径打开文件 写入数据
+    fb=open(file_path, 'wb')
+    #写入修改完数据
+    bytes_linshi=bytes(bytearray_linshi)
+    fb.write(bytes_linshi)
+    #关闭文件
+    fb.close()
+
+if __name__ == '__main__': 
+    window = tk.Tk()
+    window.title('【原子吸收】二进制文件修改')  # 标题
+    window.geometry('650x630')  # 窗口尺寸
+    window.resizable(width=False, height=False) #禁止窗口改变大小#
+    
+    
+    #全局变量
+    mingcheng_list=[]
+    bianhao_list=[]
+    xiguangdu_list=[]
+    nongdu_list=[]
+    date_list=[]
+    list_LEN=0
+    window_SHU=24
+    #文件bytes
+    yz_list=[]
+    Y=1999+1+22
+    
+    
+    #画窗口    
+    label_list=[]
+    entry_mingcheng_list=[] 
+    entry_bianhao_list=[] 
+    entry_xiguangdu_list=[] 
+    entry_nongdu_list=[]
+    entry_date=None
+    label_H=25
+    for num in range(0,window_SHU):
+        #创建序号标签列表
+        label_linshi=tk.Label(window,text=str(num+1),width=5, height=1,bg='green')
+        label_list.append(label_linshi)
+        #创建名称标签列表
+        entry_linshi=tk.Entry(window,width=10)
+        entry_mingcheng_list.append(entry_linshi)
+        #创建编号标签列表
+        entry_linshi=tk.Entry(window,width=15)
+        entry_bianhao_list.append(entry_linshi)
+        #创建吸光度文本框
+        entry_linshi=tk.Entry(window,width=10)
+        entry_xiguangdu_list.append(entry_linshi)
+        #创建浓度文本框
+        entry_linshi=tk.Entry(window,width=10)
+        entry_nongdu_list.append(entry_linshi)
+    for num in range(len(label_list)):
+        label_list[num].place(x=10, y=15+num*label_H)
+        entry_mingcheng_list[num].place(x=70, y=15+num*label_H)
+        entry_bianhao_list[num].place(x=170, y=15+num*label_H)
+        entry_xiguangdu_list[num].place(x=300, y=15+num*label_H)
+        entry_nongdu_list[num].place(x=400, y=15+num*label_H)
+    #创建时间文本框
+    entry_date=tk.Entry(window,width=10)
+    entry_date.place(x=500, y=300)    
+    
+    #创建打开保存文件按钮
+    bt1 = tk.Button(window, text='打开文件', width=16, height=2, command=lambda:open_file(yz_list))
+    bt1.place(x=500, y=200) 
+    bt2 = tk.Button(window, text='另存为文件', width=16, height=2, command=lambda:save_as_file(yz_list))
+    bt2.place(x=500, y=400)   
+    
+    if Y != datetime.date.today().year:
+        sys.exit(0)
+    
+    window.mainloop()  # 显示
